@@ -1,35 +1,92 @@
-var crypt = require('crypto');
-console.log('\n')
+const crypt = require('crypto');
+const fs = require("fs");
+const util = require("util");
 
-console.log(" ██████╗  ██████╗  ██████╗██████╗ ██╗   ██╗██████╗ ")
-console.log("██╔════╝ ██╔═══██╗██╔════╝██╔══██╗╚██╗ ██╔╝██╔══██╗")
-console.log("██║  ███╗██║   ██║██║     ██████╔╝ ╚████╔╝ ██████╔╝")
-console.log("██║   ██║██║   ██║██║     ██╔══██╗  ╚██╔╝  ██╔═══╝ ")
-console.log("╚██████╔╝╚██████╔╝╚██████╗██║  ██║   ██║   ██║      ")
-console.log(" ╚═════╝  ╚═════╝  ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚═╝     ")
-
-console.log('\n')
-console.log("Bienvenido a GoCrypt una herramienta que permite cifrar sus contraseñas")
-console.log('')
-console.log('------------------------- Encrypt -------------------------------------')
-console.log('')
-console.log('')
-
-const readline = require('readline').createInterface({
-  input: process.stdin,
-  output: process.stdout
+const readLine = require('readline').createInterface({
+	input: process.stdin,
+	output: process.stdout
 });
+const question = function(q) {
+    return new Promise((resolve) => {
+        readLine.question(q, answer => {
+            resolve(answer);
+        });
+    });
+};
 
-readline.question('A continuación ingrese su contraseña:\n> ', pass => {
-  this.yourPass = pass
-  var key = crypt.createCipher('aes-128-cbc', 'password_key');
-  var encrypted_str = key.update(this.yourPass, 'utf8', 'hex')
-  encrypted_str += key.final('hex');
-  console.log('------------------------------------------')
-  console.log('| Hash ' + '| ' + encrypted_str + ' |');
-  console.log('------------------------------------------') 
-  readline.close();
-});
+const readFile = util.promisify(fs.readFile);
+const writeFile = util.promisify(fs.writeFile);
+
+const decipher = crypt.createDecipher('aes-128-cbc', 'password_key');
+
+const textIntro = `
+██████╗  ██████╗  ██████╗██████╗ ██╗   ██╗██████╗ 
+██╔════╝ ██╔═══██╗██╔════╝██╔══██╗╚██╗ ██╔╝██╔══██╗
+██║  ███╗██║   ██║██║     ██████╔╝ ╚████╔╝ ██████╔╝
+██║   ██║██║   ██║██║     ██╔══██╗  ╚██╔╝  ██╔═══╝ 
+╚██████╔╝╚██████╔╝╚██████╗██║  ██║   ██║   ██║      
+╚═════╝  ╚═════╝  ╚═════╝╚═╝  ╚═╝   ╚═╝   ╚═╝   
+
+Bienvenido a GoCrypt, una herramienta que permite cifrar y descifrar sus archivos.`;
+const textMainMenu = `Por favor seleccione una opción:
+
+1. Encriptar un archivo con el método AES-128
+2. Desencriptar un archivo previamente codificado con el método AES-128
+3. Salir
+
+`;
+const textCipherInputFileName = `¿Cúal es el nombre del archivo que desea encriptar?:`;
+const textCipherPassword = `Escriba la contraseña que desea usar para encriptar el archivo:`;
+const textCipherOutputFileName = `¿Cúal es el nombre con el que desea guardar el archivo encriptado?:`; 
+
+function intro() {
+	console.log(textIntro);
+};
+function outro(message) {
+	console.log(message)
+	readLine.close();
+}
+
+async function mainMenu() {
+	let userSelection = await question(textMainMenu);
+	switch(userSelection){
+		case '1':
+			cipherFile();
+			break;
+		case '2':
+			console.log('\n¡Esta opción aun no ha sido programada!\n');
+			mainMenu();
+			break;
+		case '3':
+			outro('\nCerrando el programa...');
+			break;
+		default:
+			console.log('\nLa opción selecionada es inválida.\n')
+			mainMenu();
+	};
+};
+
+async function cipherFile() {
+	const inputFileName = await question(textCipherInputFileName);
+	const password = await question(textCipherPassword);
+	const outputFileName = await question(textCipherOutputFileName);
+
+	readFile(inputFileName).then(fileData => {
+		const stringData = fileData.toString();
+		const cipher = crypt.createCipher('aes-128-cbc', password);
+		return cipher.update(stringData, 'utf8', 'hex');
+	}).then(async encryptedData => {
+		await writeFile(outputFileName, encryptedData);
+		console.log('\nEl archivo encriptado fue guardado exitosamente.\n');
+	}).catch((errorMsg) => {
+		console.log(`\nSe presentó un error al realizar el proceso: ${errorMsg}\n`);
+	}).finally(()=>{
+		mainMenu();
+	});
+}
+
+intro();
+mainMenu();
 
 /*
 console.log('------------------------- Decrypt ------------------------------')
