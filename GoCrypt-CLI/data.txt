@@ -1,2 +1,2 @@
-User: Andrew
-Password: 1234
+Andrew:1234
+German:5678
